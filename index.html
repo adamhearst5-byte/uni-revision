@@ -292,6 +292,39 @@ details > summary { cursor: pointer; font-weight: 700; }
   .meter-label { text-align: left; }
 }
 
+/* Recommended next */
+.recs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.rec { display: grid; grid-template-columns: 2rem 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.rec:first-child { border-top: 0; }
+.rec-n { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; color: var(--mod, var(--muted)); font-variant-numeric: tabular-nums; }
+.rec-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+@media (max-width: 560px) { .rec { grid-template-columns: 1.6rem 1fr; } .rec .btn { grid-column: 2; justify-self: start; } }
+
+/* Calendar */
+.calwrap { overflow-x: auto; }
+.cal { display: grid; grid-template-columns: 2.2rem repeat(7, minmax(0, 1fr)); gap: 4px; min-width: 320px; }
+.cal-h { font-size: 0.72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; text-align: center; padding-bottom: 4px; }
+.cal-wk { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; }
+.cal-d { min-height: 92px; min-width: 0; display: flex; flex-direction: column; gap: 3px; align-items: stretch; text-align: left; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; overflow: hidden; }
+.cal-d:hover { border-color: var(--muted); }
+.cal-d.out { background: transparent; opacity: 0.5; }
+.cal-d .dn { font-weight: 700; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.cal-d.today .dn { background: var(--ink); color: var(--surface); border-radius: 999px; padding: 0 7px; align-self: flex-start; }
+.cal-d.sel { box-shadow: inset 0 0 0 2px var(--focus); }
+.chip { display: block; font-size: 0.7rem; line-height: 1.3; padding: 2px 5px; border-radius: 4px; background: var(--mod-soft, var(--sunk)); color: var(--mod, var(--ink)); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chip.big { background: var(--mod); color: var(--surface); }
+.chip.rem { background: var(--warn-soft); color: var(--warn); }
+.legend-key { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.legend-key i { width: 10px; height: 10px; border-radius: 3px; background: var(--mod); display: inline-block; }
+.legend-key.rem i { background: var(--warn); }
+.evrow > div { border-left: 3px solid var(--mod, var(--warn)); padding-left: 10px; }
+.evrow .rem-ev { border-left-color: var(--warn); }
+@media (max-width: 640px) {
+  .cal { gap: 2px; grid-template-columns: 1.6rem repeat(7, minmax(0, 1fr)); }
+  .cal-d { min-height: 54px; padding: 4px; }
+  .chip { font-size: 0; height: 6px; padding: 0; border-radius: 3px; }
+}
+
 </style>
 </head>
 <body>
@@ -303,6 +336,7 @@ details > summary { cursor: pointer; font-weight: 700; }
       <button data-view="topics">Topics</button>
       <button data-view="review">Flashcards</button>
       <button data-view="test">Mini test</button>
+      <button data-view="calendar">Calendar</button>
       <button data-view="reminders">Reminders</button>
     </nav>
   </div>
@@ -2611,13 +2645,18 @@ window.BANK = {"db1": {"cards": [{"id": "com106-w1-database-basics-fc01", "q": "
   const CARD_INDEX = {};
   TOPICS.forEach(function (t) { t.cardItems.forEach(function (c) { CARD_INDEX[c.id] = { card: c, topic: t }; }); });
 
+  const SEM_START = '2026-09-21'; // Monday of teaching week 1 (week 5 = w/c 19 Oct, week 8 = w/c 9 Nov)
   const KEY_DATES = [
-    { id: 'k1', mod: 'py', date: '2026-11-02', what: 'COM161 Class Test 1', detail: 'Week 7 · 40% · about 35 multiple-choice questions, 90 minutes. Study notes allowed.', approx: true },
-    { id: 'k2', mod: 'db', date: '2026-11-09', what: 'COM106 Set Exercise', detail: 'Week 8, in your lab session · 40% · 90 minutes, practical SQL Server skills.', approx: true },
+    { id: 'k0a', mod: 'py', date: '2026-10-05', what: 'COM161 progress test 1', detail: 'Week 3 lab · formative and mandatory · covers weeks 1 to 3.', approx: true },
+    { id: 'k0b', mod: 'py', date: '2026-10-19', what: 'COM161 progress test 2', detail: 'Week 5 lab · formative and mandatory · practice for Class Test 1.', approx: true },
+    { id: 'k0c', mod: 'py', date: '2026-10-27', what: 'COM161 module survey closes', detail: 'Mid-semester survey, open 20 to 27 October. Link in the Blackboard announcement.' },
+    { id: 'k1', mod: 'py', date: '2026-11-02', what: 'COM161 Class Test 1', detail: 'Week 7 · 40% · about 35 multiple-choice questions, 90 minutes. Study notes allowed.', approx: true, big: true },
+    { id: 'k2', mod: 'db', date: '2026-11-09', what: 'COM106 Set Exercise', detail: 'Week 8, in your lab session · 40% · 90 minutes, practical SQL Server skills.', approx: true, big: true },
     { id: 'k3', mod: 'py', date: '2026-11-09', what: 'COM161 practice coding tasks released', detail: 'Week 8 · do them all before Class Test 2.', approx: true },
-    { id: 'k4', mod: 'db', date: '2026-12-11', time: '12:00', what: 'COM106 Assignment due', detail: 'Friday 12 noon · 60% · 3-page design document + 10-minute screencast.' },
-    { id: 'k5', mod: 'py', date: '2026-12-14', what: 'COM161 Class Test 2', detail: 'Week 13 · 60% · practical coding under exam conditions, 90 minutes.', approx: true },
+    { id: 'k4', mod: 'db', date: '2026-12-11', time: '12:00', what: 'COM106 Assignment due', detail: 'Friday 12 noon · 60% · 3-page design document + 10-minute screencast.', big: true },
+    { id: 'k5', mod: 'py', date: '2026-12-14', what: 'COM161 Class Test 2', detail: 'Week 13 · 60% · practical coding under exam conditions, 90 minutes.', approx: true, big: true },
   ];
+  function teachingWeek(d) { const n = Math.floor(daysBetween(SEM_START, d) / 7) + 1; return n >= 1 && n <= 15 ? n : null; }
 
   /* ---------------- Storage ---------------- */
   const STORE_KEY = 'uni-study-v1';
@@ -2782,6 +2821,7 @@ window.BANK = {"db1": {"cards": [{"id": "com106-w1-database-basics-fc01", "q": "
     else if (view.name === 'review') renderReview();
     else if (view.name === 'test') renderTest();
     else if (view.name === 'reminders') renderReminders();
+    else if (view.name === 'calendar') renderCalendar();
   }
   function updateNav() {
     const due = dueCards().length;
@@ -2828,6 +2868,55 @@ window.BANK = {"db1": {"cards": [{"id": "com106-w1-database-basics-fc01", "q": "
     });
     return best && best.t;
   }
+  // Ranked study suggestions: nearest big deadline first, then due cards, this week's lectures, weak quizzes, exercises, a weekly mixed test.
+  function recommendations() {
+    const out = []; const used = new Set();
+    const topicAttr = function (t, tab) { return 'data-topic="' + t.id + '" data-tab="' + tab + '"'; };
+    const weakIn = function (filter) {
+      let best = null;
+      TOPICS.forEach(function (t) {
+        if (!filter(t) || used.has(t.id)) return;
+        const s = topicScore(t) * 10 + ((S.quiz[t.id] || {}).best || 0) / 20 - t.week * 0.01;
+        if (!best || s < best.s) best = { t: t, s: s };
+      });
+      return best && best.t;
+    };
+    const nextBig = KEY_DATES.filter(function (k) { return k.big && daysBetween(today(), k.date) >= 0; })[0];
+    if (nextBig) {
+      const d = daysBetween(today(), nextBig.date);
+      const t = weakIn(function (x) { return x.module.id === nextBig.mod; });
+      if (t) {
+        used.add(t.id);
+        const q = (S.quiz[t.id] || {}).best;
+        out.push({ mod: t.module.id, title: 'Revise ' + t.title + ' for ' + nextBig.what, why: nextBig.what + ' is ' + (d === 0 ? 'today' : 'in ' + d + ' day' + (d === 1 ? '' : 's')) + '. This is your weakest ' + t.module.code + ' topic' + (q !== undefined ? ' (best quiz ' + q + '%).' : '.'), cta: S.read[t.id] ? 'Take the quiz' : 'Read the notes', attr: topicAttr(t, S.read[t.id] ? 'mcq' : 'notes') });
+      }
+    }
+    const due = dueCards().length;
+    if (due) out.push({ title: 'Review ' + due + ' due flashcard' + (due === 1 ? '' : 's'), why: 'Reviewing on the day they are due is what makes them stick.', cta: 'Review now', attr: 'data-go="review"' });
+    const wk = teachingWeek(today());
+    TOPICS.forEach(function (t) {
+      if (wk && t.week === Math.min(wk, 5) && !S.read[t.id] && !used.has(t.id) && out.length < 5) {
+        used.add(t.id);
+        out.push({ mod: t.module.id, title: 'Catch up on this week: ' + t.title, why: t.module.code + ' week ' + t.week + ' lecture. Read the notes while it is fresh.', cta: 'Read the notes', attr: topicAttr(t, 'notes') });
+      }
+    });
+    const weakQuiz = weakIn(function (t) { return ((S.quiz[t.id] || {}).best || 0) < 70; });
+    if (weakQuiz && out.length < 5) {
+      used.add(weakQuiz.id);
+      const q = S.quiz[weakQuiz.id];
+      out.push({ mod: weakQuiz.module.id, title: 'Quiz yourself on ' + weakQuiz.title, why: q ? 'Your best score is ' + q.best + '%. Aim for 70% or more.' : 'You have not tried this quiz yet.', cta: 'Start quiz', attr: topicAttr(weakQuiz, 'mcq') });
+    }
+    const exT = TOPICS.find(function (t) { return !used.has(t.id) && t.exercises.some(function (_, i) { return !S.done[t.id + '-x' + i]; }); });
+    if (exT && out.length < 5) {
+      const i = exT.exercises.findIndex(function (_, j) { return !S.done[exT.id + '-x' + j]; });
+      out.push({ mod: exT.module.id, title: 'Try an exercise: ' + exT.exercises[i].title, why: exT.module.code + ' · ' + exT.title + '. Practise like the class test, then check the model answer.', cta: 'Open exercises', attr: topicAttr(exT, 'exercises') });
+    }
+    const lastTest = S.tests.length ? S.tests[S.tests.length - 1].date : null;
+    if (out.length < 5 && (!lastTest || daysBetween(lastTest, today()) >= 7)) {
+      out.push({ title: 'Take a mixed mini test', why: lastTest ? 'Your last test was ' + daysBetween(lastTest, today()) + ' days ago.' : 'See where you stand across both modules.', cta: 'Start a test', attr: 'data-go="test"' });
+    }
+    return out.slice(0, 5);
+  }
   function renderToday() {
     const due = dueCards().length;
     const upcoming = KEY_DATES.filter(function (k) { return daysBetween(today(), k.date) >= 0; }).slice(0, 4);
@@ -2842,20 +2931,18 @@ window.BANK = {"db1": {"cards": [{"id": "com106-w1-database-basics-fc01", "q": "
       '<div class="row" style="gap:28px"><div class="stat"><b>' + st + '</b><span class="small muted">day streak</span></div>' +
       '<div class="stat"><b>' + learnt + '<span class="muted" style="font-size:1rem">/' + totalCards + '</span></b><span class="small muted">cards learnt</span></div></div></div>';
 
-    html += '<div class="grid2">';
-    html += '<div class="panel stack" style="gap:10px"><span class="eyebrow">Flashcards</span>';
-    if (due) html += '<h2>' + due + ' card' + (due === 1 ? '' : 's') + ' due for review</h2><p class="muted small">Cards come back on a schedule: 1, 2, 4, 8 then 16 days as you get them right.</p><div class="row"><button class="btn" data-go="review">Review now</button></div>';
-    else html += '<h2>No cards due</h2><p class="muted small">Start a topic\'s flashcards to build your review queue. Cards you know come back less often.</p><div class="row"><button class="btn ghost" data-go="review">Learn new cards</button></div>';
-    html += '</div>';
-    html += '<div class="panel stack ' + (weak ? modClass(weak) : '') + '" style="gap:10px"><span class="eyebrow">Suggested next</span>';
-    if (weak) html += '<h2>' + esc(weak.title) + '</h2><p class="muted small"><span class="tag">' + weak.module.code + ' · Week ' + weak.week + '</span> This is your least practised topic.</p><div class="row"><button class="btn" data-topic="' + weak.id + '">Open topic</button><button class="btn ghost" data-go="test">Take a mini test</button></div>';
-    html += '</div></div>';
+    const recs = recommendations();
+    html += '<div class="panel stack" style="gap:4px"><div class="row" style="justify-content:space-between"><span class="eyebrow">Recommended next</span><span class="small muted">Based on your deadlines, due cards and scores</span></div>' +
+      '<ol class="recs">' + recs.map(function (r, i) {
+        return '<li class="rec ' + (r.mod ? 'mod-' + r.mod : '') + '"><span class="rec-n">' + (i + 1) + '</span><span class="rec-main"><b>' + esc(r.title) + '</b><span class="small muted">' + esc(r.why) + '</span></span>' +
+          '<button class="btn' + (i ? ' ghost' : '') + ' small" ' + r.attr + '>' + esc(r.cta) + '</button></li>';
+      }).join('') + '</ol></div>';
 
     if (rems.length) {
       html += '<div class="panel stack" style="gap:8px"><span class="eyebrow">Your reminders</span>' + rems.map(reminderRowHtml).join('') + '</div>';
     }
 
-    html += '<div class="stack" style="gap:10px"><span class="eyebrow">Coming up</span><div class="dates">' + upcoming.map(countdownHtml).join('') + '</div></div>';
+    html += '<div class="stack" style="gap:10px"><div class="row" style="justify-content:space-between"><span class="eyebrow">Coming up</span><button class="btn ghost small" data-go="calendar">Open calendar</button></div><div class="dates">' + upcoming.map(countdownHtml).join('') + '</div></div>';
 
     html += '<div class="grid2">';
     MODULES.forEach(function (m) {
@@ -3298,6 +3385,72 @@ window.BANK = {"db1": {"cards": [{"id": "com106-w1-database-basics-fc01", "q": "
     bindCommon();
   }
 
+
+  /* ---------------- Calendar ---------------- */
+  function eventsOn(d) {
+    const ev = [];
+    KEY_DATES.forEach(function (k) { if (k.date === d) ev.push({ kind: 'key', mod: k.mod, what: k.what, detail: k.detail, time: k.time, approx: k.approx, big: k.big }); });
+    S.reminders.forEach(function (r) {
+      if (r.done && (!r.repeat || r.repeat === 'none')) return;
+      let hit = false;
+      if (!r.repeat || r.repeat === 'none') hit = r.date === d;
+      else if (d >= r.date) hit = r.repeat === 'daily' ? false : daysBetween(r.date, d) % 7 === 0;
+      if (hit) ev.push({ kind: 'rem', what: r.text, time: r.time, detail: r.repeat === 'weekly' ? 'Weekly reminder' : 'Your reminder' });
+    });
+    return ev;
+  }
+  function renderCalendar() {
+    const t0 = today();
+    const month = view.month || t0.slice(0, 7);
+    view.month = month;
+    const sel = view.day || (t0.slice(0, 7) === month ? t0 : month + '-01');
+    const y = Number(month.slice(0, 4)); const m = Number(month.slice(5, 7)) - 1;
+    const first = new Date(y, m, 1);
+    const startOffset = (first.getDay() + 6) % 7; // Monday-first grid
+    let cur = addDays(ymd(first), -startOffset);
+    const monthName = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m];
+    const shift = function (n) { const d = new Date(y, m + n, 1); return ymd(d).slice(0, 7); };
+    const daily = S.reminders.filter(function (r) { return r.repeat === 'daily'; });
+    let html = '<div class="stack"><div class="stack" style="gap:6px"><span class="eyebrow">Semester 1 · 2026</span><h1>Calendar</h1>' +
+      '<p class="muted" style="max-width:62ch">Assessments and deadlines from your COM106 and COM161 module material, your own reminders, and the teaching week numbers. Dates marked "week of" are in your lab or class that week, so check your timetable for the exact day.</p></div>';
+    html += '<div class="row" style="justify-content:space-between"><div class="row" style="gap:8px"><button class="btn ghost small" id="prevm" aria-label="Previous month">←</button><h2 style="min-width:9ch">' + monthName + ' ' + y + '</h2><button class="btn ghost small" id="nextm" aria-label="Next month">→</button>' +
+      (month !== t0.slice(0, 7) ? '<button class="btn ghost small" id="thism">Today</button>' : '') + '</div>' +
+      '<div class="row small" style="gap:12px"><span class="legend-key mod-db"><i></i>COM106</span><span class="legend-key mod-py"><i></i>COM161</span><span class="legend-key rem"><i></i>Your reminders</span></div></div>';
+    html += '<div class="calwrap"><div class="cal" role="grid"><div class="cal-h">Wk</div>' + ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(function (d) { return '<div class="cal-h">' + d + '</div>'; }).join('');
+    for (let w = 0; w < 6; w++) {
+      if (w > 0 && cur.slice(0, 7) !== month) break;
+      const tw = teachingWeek(cur);
+      html += '<div class="cal-wk">' + (tw ? tw : '') + '</div>';
+      for (let i = 0; i < 7; i++) {
+        const ev = eventsOn(cur);
+        const cls = ['cal-d']; if (cur.slice(0, 7) !== month) cls.push('out'); if (cur === t0) cls.push('today'); if (cur === sel) cls.push('sel');
+        html += '<button class="' + cls.join(' ') + '" data-day="' + cur + '" aria-label="' + nice(cur) + (ev.length ? ', ' + ev.length + ' event' + (ev.length === 1 ? '' : 's') : '') + '"><span class="dn">' + parseDate(cur).getDate() + '</span>' +
+          ev.map(function (e) { return '<span class="chip ' + (e.kind === 'rem' ? 'rem' : 'mod-' + e.mod) + (e.big ? ' big' : '') + '">' + esc(e.what) + '</span>'; }).join('') + '</button>';
+        cur = addDays(cur, 1);
+      }
+    }
+    html += '</div></div>';
+    const selEv = eventsOn(sel);
+    html += '<div class="grid2"><div class="panel stack" style="gap:8px"><span class="eyebrow">' + nice(sel) + (teachingWeek(sel) ? ' · teaching week ' + teachingWeek(sel) : '') + '</span>' +
+      (selEv.length ? selEv.map(evRow).join('') : '<p class="muted">Nothing on this day.' + (daily.length ? ' Daily reminders: ' + daily.map(function (r) { return esc(r.text); }).join(', ') + '.' : '') + '</p>') +
+      '<div class="row"><button class="btn ghost small" id="addhere">Add a reminder on this day</button></div></div>';
+    const monthEv = [];
+    let d = month + '-01';
+    while (d.slice(0, 7) === month) { eventsOn(d).forEach(function (e) { monthEv.push({ d: d, e: e }); }); d = addDays(d, 1); }
+    html += '<div class="panel stack" style="gap:8px"><span class="eyebrow">All of ' + monthName + '</span>' +
+      (monthEv.length ? monthEv.map(function (x) { return '<div class="rem"><span class="when">' + nice(x.d) + '</span>' + evRow(x.e).replace(/^<div class="evrow">|<\/div>$/g, '') + '</div>'; }).join('') : '<p class="muted">No dates this month.</p>') + '</div></div></div>';
+    h(html);
+    app.querySelector('#prevm').addEventListener('click', function () { view.month = shift(-1); view.day = null; renderCalendar(); });
+    app.querySelector('#nextm').addEventListener('click', function () { view.month = shift(1); view.day = null; renderCalendar(); });
+    const tm = app.querySelector('#thism'); if (tm) tm.addEventListener('click', function () { view.month = null; view.day = null; renderCalendar(); });
+    on('[data-day]', 'click', function (e) { const dd = e.currentTarget.dataset.day; view.day = dd; if (dd.slice(0, 7) !== view.month) view.month = dd.slice(0, 7); renderCalendar(); });
+    app.querySelector('#addhere').addEventListener('click', function () { view.prefillDate = sel; go('reminders', { prefillDate: sel }); });
+  }
+  function evRow(e) {
+    return '<div class="evrow"><div class="' + (e.kind === 'rem' ? 'rem-ev' : 'mod-' + e.mod) + '"><b>' + esc(e.what) + '</b>' + (e.time ? ' <span class="mono small muted">' + e.time + '</span>' : '') + (e.approx ? ' <span class="pill soon">week of</span>' : '') +
+      '<div class="small muted">' + esc(e.detail || '') + '</div></div></div>';
+  }
+
   /* ---------------- Reminders ---------------- */
   function nextOccurrence(r) {
     // Returns the next due date string (>= today) for repeating reminders, or the fixed date.
@@ -3346,7 +3499,7 @@ window.BANK = {"db1": {"cards": [{"id": "com106-w1-database-basics-fc01", "q": "
     html += '<div class="dates">' + KEY_DATES.map(countdownHtml).join('') + '</div>';
     html += '<div class="grid2"><div class="panel stack"><h2>Add a reminder</h2><form id="remform" class="stack" style="gap:12px">' +
       '<div class="field"><label for="r-text">What</label><input id="r-text" required maxlength="120" placeholder="e.g. Normalisation flashcards"></div>' +
-      '<div class="row" style="align-items:flex-end"><div class="field"><label for="r-date">Date</label><input id="r-date" type="date" required value="' + today() + '"></div>' +
+      '<div class="row" style="align-items:flex-end"><div class="field"><label for="r-date">Date</label><input id="r-date" type="date" required value="' + (view.prefillDate || today()) + '"></div>' +
       '<div class="field"><label for="r-time">Time</label><input id="r-time" type="time" value="19:00"></div>' +
       '<div class="field"><label for="r-rep">Repeat</label><select id="r-rep"><option value="none">Once</option><option value="daily">Every day</option><option value="weekly">Every week</option></select></div></div>' +
       '<div class="row"><button class="btn" type="submit">Add reminder</button></div></form>' +
@@ -3433,7 +3586,7 @@ window.BANK = {"db1": {"cards": [{"id": "com106-w1-database-basics-fc01", "q": "
   /* ---------------- Boot ---------------- */
   const start = (location.hash || '').slice(1);
   if (TOPIC[start]) go('topic', { id: start, tab: 'notes' });
-  else if (['today', 'topics', 'review', 'test', 'reminders'].indexOf(start) >= 0) go(start);
+  else if (['today', 'topics', 'review', 'test', 'calendar', 'reminders'].indexOf(start) >= 0) go(start);
   else go('today');
   const due = dueCards().length;
   if (due && view.name === 'today') setTimeout(function () { toast(due + ' flashcard' + (due === 1 ? ' is' : 's are') + ' due today', { label: 'Review', fn: function () { go('review'); } }); }, 600);
